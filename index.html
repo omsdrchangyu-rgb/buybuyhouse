@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>台中看房地圖</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="map"></div>
+
+<aside id="panel">
+  <header>
+    <h1>台中看房地圖</h1>
+    <button id="open-guide" type="button">建商・看房建議</button>
+    <button id="panel-toggle" type="button" aria-label="收合面板"><span class="chev-icon"></span></button>
+  </header>
+  <div id="panel-body">
+    <section>
+      <h2>建案</h2>
+      <input id="proj-search" type="search" placeholder="搜尋案名、建商、路名、重劃區" autocomplete="off">
+      <ul id="proj-results" class="items search-results" hidden></ul>
+      <div id="my-marks"></div>
+      <div id="cats-projects"></div>
+    </section>
+    <section>
+      <h2>分區</h2>
+      <div class="seg" id="area-mode">
+        <button type="button" data-mode="districts" class="on">行政區</button>
+        <button type="button" data-mode="zones">重劃區</button>
+        <button type="button" data-mode="both">兩者</button>
+      </div>
+      <div id="cats-area"></div>
+    </section>
+    <section>
+      <h2>道路</h2>
+      <div id="cats-roads"></div>
+    </section>
+    <section>
+      <h2>軌道</h2>
+      <div id="cats-rail"></div>
+    </section>
+    <section>
+      <h2>底圖</h2>
+      <div class="seg" id="basemap">
+        <button type="button" data-base="light" class="on">淡色</button>
+        <button type="button" data-base="osm">詳細</button>
+        <button type="button" data-base="sat">航照</button>
+      </div>
+      <label class="row-switch"><span class="switch"><input type="checkbox" id="mask-toggle" checked><span></span></span>淡化台中市以外</label>
+      <p class="note">捷運實線＝營運中、長虛線＝施工中、短虛線＝規劃中。未定案路線依市府說明會簡報繪製，未定名車站以代號（B、O、P）表示，位置為推估。清單中滑過名稱會在地圖上標示，點一下會移到該處。</p>
+    </section>
+  </div>
+</aside>
+
+<aside id="pcard" hidden></aside>
+
+<div id="cmp-tray" hidden></div>
+
+<div id="compare" hidden>
+  <div class="cmp-wrap" role="dialog" aria-label="建案比較">
+    <header class="cmp-head"><h2>建案比較</h2><span class="cmp-count"></span>
+      <span class="cmp-legend"><i></i>較佳</span>
+      <button class="cmp-close" type="button" aria-label="關閉">×</button></header>
+    <div class="cmp-body"></div>
+  </div>
+</div>
+
+<div id="guide" hidden>
+  <div class="g-wrap" role="dialog" aria-label="建商、營造商與看房建議">
+    <header class="g-head">
+      <h2>建商・營造商・看房建議</h2>
+      <nav class="g-tabs">
+        <button type="button" data-tab="builders" class="on">建商評價</button>
+        <button type="button" data-tab="contractors">營造商評價</button>
+        <button type="button" data-tab="advice">看房建議</button>
+        <button type="button" data-tab="market">市場分析</button>
+        <button type="button" data-tab="youth">青安 3.0</button>
+        <button type="button" data-tab="notes">資料說明</button>
+      </nav>
+      <button class="g-close" type="button" aria-label="關閉">×</button>
+    </header>
+    <div class="g-body"></div>
+    <footer class="g-foot">建商與營造商分級為網路口碑與公開資訊粗分，非官方排名；看房建議為決策參考，非財務或法律意見。資料整理日期 2026-09-28。</footer>
+  </div>
+</div>
+
+<div id="status"><span id="zoom"></span><span id="coord"></span></div>
+
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="data/districts.js"></script>
+<script src="data/zones.js"></script>
+<script src="data/roads.js"></script>
+<script src="data/transit.js"></script>
+<script src="data/projects.js"></script>
+<script src="data/trends.js"></script>
+<script src="data/nearby.js"></script>
+<script src="js/app.js"></script>
+<script src="js/projects.js"></script>
+</body>
+</html>
