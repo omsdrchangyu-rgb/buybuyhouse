@@ -14,6 +14,8 @@
   const CAT_KEY = { '預售': 'presale', '興建中': 'building', '成屋': 'done' };
   const CATS = ['預售', '興建中', '成屋'];
   const catOn = new Set(CATS);
+  // 篩選：filterIds 為 null 表示不篩選，否則只顯示集合內的建案（由 js/filter.js 設定）
+  let filterIds = null;
 
   const builderOf = p => D.builders.find(b => b.brand === p.brand);
   const contractorOf = p => D.contractors.find(c => c.name === p.contractor);
@@ -118,6 +120,7 @@
       map.on('mouseenter', l, () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', l, () => { map.getCanvas().style.cursor = ''; });
     });
+    applyCats();
     if (pendingSelect) { const [id, o] = pendingSelect; pendingSelect = null; setTimeout(() => select(id, o), 0); }
   }
   if (map.isStyleLoaded()) addLayers(); else map.on('load', addLayers);
@@ -146,6 +149,7 @@
     const st = document.querySelector('#pcard .pc-markstate');
     if (st && selected === id) st.textContent = MARK_NAME[m] || '';
     renderMyMarks();
+    window.dispatchEvent(new CustomEvent('tc-marks'));   // 通知篩選重新計算「我的標記」條件
   }
   // 用捕捉階段攔截，避免同時觸發清單列的「移到該建案」
   document.addEventListener('click', e => {
@@ -568,26 +572,41 @@
 
   // ---------- 面板：建案清單 ----------
   const box = document.getElementById('cats-projects');
+  // 篩選：filterIds 見檔案開頭
+  const passFilter = p => !filterIds || filterIds.has(p.id);
   function applyCats() {
+    const idF = filterIds ? ['in', ['get', 'id'], ['literal', [...filterIds]]] : true;
     const f = { 'proj-dot': unmarked, 'proj-label': unmarked, 'proj-star': marked, 'proj-label-marked': marked };
-    Object.entries(f).forEach(([id, m]) => map.getLayer(id) && map.setFilter(id, ['all', catFilter(), m]));
+    Object.entries(f).forEach(([id, m]) => map.getLayer(id) && map.setFilter(id, ['all', catFilter(), m, idF]));
   }
   // 清單列：名稱前加星號按鈕
   const withStar = p => li => li.insertAdjacentHTML('afterbegin', starBtn(p));
   const byPrice = (a, b) => (b.price || 0) - (a.price || 0);
-  CATS.forEach(cat => {
-    const list = D.projects.filter(p => p.cat === cat).sort((a, b) => a.district.localeCompare(b.district) || byPrice(a, b));
-    APP.renderCat(box, {
-      id: 'proj:' + cat, name: cat, on: true,
-      swatch: `<span class="swatch pin" style="--c:${CAT_COLOR[cat]}"></span>`,
-      onToggle: on => { on ? catOn.add(cat) : catOn.delete(cat); applyCats(); },
-      items: list.map(p => ({
-        type: 'project', key: p.id, name: shortName(p),
-        sub: `${p.brand}・${p.district.replace('區', '')}`,
-        val: p.price ? p.price + ' 萬' : '', onClick: () => select(p.id), decorate: withStar(p),
-      })),
+  function renderProjCats() {
+    const wasOpen = new Set([...box.querySelectorAll('.cat.open')].map(el => el.dataset.cat));
+    box.innerHTML = '';
+    CATS.forEach(cat => {
+      const list = D.projects.filter(p => p.cat === cat && passFilter(p))
+        .sort((a, b) => a.district.localeCompare(b.district) || byPrice(a, b));
+      const el = APP.renderCat(box, {
+        id: 'proj:' + cat, name: cat, on: catOn.has(cat),
+        swatch: `<span class="swatch pin" style="--c:${CAT_COLOR[cat]}"></span>`,
+        onToggle: on => { on ? catOn.add(cat) : catOn.delete(cat); applyCats(); },
+        items: list.map(p => ({
+          type: 'project', key: p.id, name: shortName(p),
+          sub: `${p.brand}・${p.district.replace('區', '')}`,
+          val: p.price ? p.price + ' 萬' : '', onClick: () => select(p.id), decorate: withStar(p),
+        })),
+      });
+      if (wasOpen.has('proj:' + cat)) el.querySelector('.cat-head').click();
     });
-  });
+  }
+  renderProjCats();
+  function setFilterIds(ids) {
+    filterIds = ids ? new Set(ids) : null;
+    applyCats();
+    renderProjCats();
+  }
 
   // 我的標記：有興趣、已看過兩組，標記變動時重畫
   const myBox = document.getElementById('my-marks');
@@ -784,5 +803,5 @@
     map.once('load', fold);
     map.once('idle', fold);
   }
-  window.TCProjects = { select, deselect, openGuide, get selected() { return selected; } };
+  window.TCProjects = { select, deselect, openGuide, setFilterIds, markOf, CAT_COLOR, get selected() { return selected; } };
 })();

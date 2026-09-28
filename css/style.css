@@ -186,7 +186,7 @@ button { font: inherit; }
 
 /* ---------- 建案資料卡 ---------- */
 #pcard {
-  position: absolute; top: 12px; right: 52px; width: 360px; max-height: calc(100% - 60px); overflow-y: auto;
+  position: absolute; top: 58px; right: 52px; width: 360px; max-height: calc(100% - 106px); overflow-y: auto;   /* 上方留給篩選列 */
   background: #fff; border: 1px solid var(--line); border-radius: 12px;
   box-shadow: 0 6px 24px rgba(40, 30, 60, 0.14); font-size: 13px; padding: 14px 16px 12px;
   animation: pc-in 0.2s ease-out; z-index: 5;
@@ -614,3 +614,114 @@ button { font: inherit; }
   .pc-sum b { font-size: 17px; color: var(--ink); }
 }
 @media (max-width: 700px) { .cmp-close { margin-left: auto; } }
+
+/* ======================================================================
+   篩選列（漏斗按鈕往右展開；沿用牙科系統待辦清單的篩選外觀）
+   ====================================================================== */
+#fbar {
+  position: absolute; top: 12px; left: 316px; right: 56px; z-index: 4;
+  display: flex; align-items: center; gap: 6px; pointer-events: none;
+}
+#fbar > * { pointer-events: auto; }
+.f-btn {
+  position: relative; flex: 0 0 36px; width: 36px; height: 36px; padding: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink-soft);
+  box-shadow: 0 2px 8px rgba(40, 30, 60, 0.1);
+  transition: background 0.3s, color 0.3s, border-color 0.3s, transform 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.f-btn:active { transform: scale(0.92); }
+#fbar.open .f-btn { background: var(--ink); border-color: var(--ink); color: #fff; }
+#fbar.active .f-btn::after {
+  content: ""; position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%;
+  background: #d6336c; border: 2px solid #fff;
+}
+.f-opts {
+  display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; min-width: 0;
+  max-width: 0; opacity: 0; overflow-x: auto; overflow-y: hidden; padding: 4px 4px 6px; margin: -4px -4px -6px;
+  scrollbar-width: none; pointer-events: none;
+  transition: max-width 0.45s cubic-bezier(0.3, 0.7, 0.25, 1), opacity 0.25s ease;
+}
+.f-opts::-webkit-scrollbar { display: none; }
+#fbar.open .f-opts { max-width: 100%; opacity: 1; pointer-events: auto; }
+.f-opts > * {
+  flex: 0 0 auto; opacity: 0; transform: translateX(-12px) scale(0.96);
+  transition: opacity 0.25s ease, transform 0.4s cubic-bezier(0.3, 0.7, 0.25, 1.15);
+}
+#fbar.open .f-opts > * { opacity: 1; transform: none; transition-delay: var(--d, 0s); }
+@media (prefers-reduced-motion: reduce) { .f-opts, .f-opts > * { transition: none; } }
+
+.f-q {
+  display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; width: 190px;
+  background: #fff; border: 1px solid var(--line); border-radius: 9px; color: var(--ink-faint);
+  box-shadow: 0 2px 8px rgba(40, 30, 60, 0.08);
+}
+.f-q input { border: 0; outline: none; background: transparent; font: inherit; font-size: 13px; color: var(--ink); width: 100%; min-width: 0; }
+.f-q:focus-within { border-color: #b7aecb; }
+.f-chip {
+  display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 10px; cursor: pointer;
+  background: #fff; border: 1px solid var(--line); border-radius: 9px; font: inherit; font-size: 13px; color: var(--ink-soft);
+  box-shadow: 0 2px 8px rgba(40, 30, 60, 0.08); white-space: nowrap;
+}
+.f-chip:hover { border-color: #d3cedc; color: var(--ink); }
+.f-chip b { font-weight: 600; color: var(--ink); max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.f-chip.on { background: #f1eef6; border-color: #cfc6de; color: var(--accent); }
+.f-chip.open { border-color: var(--accent); }
+.f-chip .car {
+  width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translate(-1px, -1px); opacity: 0.6; transition: transform 0.15s;
+}
+.f-chip.open .car { transform: rotate(-135deg) translate(-1px, -1px); }
+.f-result {
+  display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 4px 0 10px;
+  font-size: 12px; color: var(--ink-soft); white-space: nowrap;
+  background: rgba(255, 255, 255, 0.92); border-radius: 9px;
+}
+.f-result b { color: var(--ink); font-size: 14px; }
+.f-clear {
+  border: 0; background: var(--hover); color: var(--accent); border-radius: 7px; padding: 5px 10px;
+  font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+
+#fpop {
+  position: fixed; z-index: 30; background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 10px 32px rgba(40, 30, 60, 0.18); overflow: hidden; display: flex; flex-direction: column;
+  animation: fp-in 0.16s ease-out; font-size: 13px;
+}
+#fpop[hidden] { display: none; }
+@keyframes fp-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.fp-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px 8px; border-bottom: 1px solid var(--line); }
+.fp-head span { font-size: 11px; color: var(--ink-faint); }
+.fp-reset {
+  margin-left: auto; border: 0; background: none; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; padding: 2px 4px;
+}
+.fp-reset:disabled { color: var(--ink-faint); cursor: default; }
+.fp-find { margin: 8px 10px 2px; border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px; font: inherit; font-size: 13px; outline: none; }
+.fp-find:focus { border-color: #b7aecb; }
+.fp-list { overflow-y: auto; padding: 4px 0 6px; overscroll-behavior: contain; }
+.fp-opt { display: flex; align-items: center; gap: 9px; padding: 7px 12px; cursor: pointer; }
+.fp-opt[hidden] { display: none; }
+.fp-opt:hover { background: var(--hover); }
+.fp-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.fp-opt .box {
+  flex: 0 0 16px; width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid #cbc5d4; background: #fff;
+  position: relative; transition: background 0.15s, border-color 0.15s;
+}
+.fp-opt input:checked + .box { background: var(--accent); border-color: var(--accent); }
+.fp-opt input:checked + .box::after {
+  content: ""; position: absolute; left: 4.5px; top: 1.5px; width: 4px; height: 8px;
+  border-right: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(45deg);
+}
+.fp-opt input:focus-visible + .box { outline: 2px solid #b7aecb; outline-offset: 1px; }
+.fp-opt .t { flex: 1; }
+.fp-opt .n { font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.fp-opt.zero .t { color: var(--ink-faint); }
+
+@media (max-width: 700px) {
+  #fbar { top: 56px; left: 8px; right: 8px; }
+  .maplibregl-ctrl-top-right { top: 100px; }
+  #cmp-tray { top: 100px; }
+  .f-q { width: 150px; }
+  #panel:not(.collapsed) ~ #fbar { display: none; }
+}
