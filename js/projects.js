@@ -209,6 +209,17 @@
   const isPending = s => !s || /^待/.test(s);
   const val = s => isPending(s) ? muted(s || '待查') : esc(s);
 
+  // 總價：優先用實價登錄本案近兩年成交（取中間 50% 範圍），沒有再用試算表／591 在售總價
+  const TRD = (window.TC.trends || { data: {} }).data;
+  const fmtW = n => Number(n).toLocaleString('zh-TW');
+  function totalInfo(p) {
+    const t = TRD[p.id] && TRD[p.id].total;
+    const s = p.totalText;
+    if (t) return { lo: t.p25, hi: t.p75, t, s, main: t.p25 === t.p75 ? fmtW(t.med) : `${fmtW(t.p25)}～${fmtW(t.p75)}` };
+    if (s) return { lo: s[0], hi: s[1] || s[0], s, main: s[1] ? `${fmtW(s[0])}～${fmtW(s[1])}` : `${fmtW(s[0])} 起` };
+    return null;
+  }
+
   function renderCard(p) {
     const b = builderOf(p);
     const c = contractorOf(p);
@@ -221,6 +232,10 @@
       ? `<button type="button" class="price-btn" title="看近 5 年成交走勢"><span class="price">${p.price}</span><span class="unit">萬／坪</span><span class="trend-hint">近 5 年走勢</span></button><span class="sub">${esc(p.priceText)}</span>`
       : `${val(p.priceText)}<button type="button" class="price-btn small"><span class="trend-hint">近 5 年區域走勢</span></button>`)
       + `<div class="trend" hidden></div>`;
+    const tot = totalInfo(p);
+    const totalDetail = !tot ? muted('近兩年無成交，資料未提供總價')
+      : (tot.t ? `<span class="tot-range">${tot.main} 萬</span><span class="sub">近兩年成交 ${tot.t.n} 筆（含車位）：中位 ${fmtW(tot.t.med)} 萬，最低 ${fmtW(tot.t.min)}、最高 ${fmtW(tot.t.max)} 萬；上面範圍為中間一半的成交</span>` : '')
+      + (tot.s ? `<span class="sub">${esc(tot.s[2])}：${fmtW(tot.s[0])}${tot.s[1] ? '～' + fmtW(tot.s[1]) : ' 起'} 萬</span>` : '');
     const school = [p.elem, p.junior].filter(s => s && !isPending(s)).map(esc).join('<br>') || muted('待查');
     const showCompletion = p.cat !== '成屋';
     const btn591 = p.onSale > 0 && p.market591
@@ -235,16 +250,19 @@
       <div class="pc-head">
         <div class="pc-badges"><span class="badge" style="--c:${CAT_COLOR[p.cat]}">${esc(p.cat)}</span>
           ${b ? `<span class="badge tier">${esc(tierShort(b.tier))}</span>` : ''}</div>
-        <div class="pc-title">${starBtn(p, true)}<h3>${esc(p.name)}</h3></div>
+        <div class="pc-title">${starBtn(p, true)}<h3>${esc(p.name)}</h3>
+          <div class="pc-total">${tot ? `<span class="tot">${tot.main}<small> 萬</small></span>` : '<span class="tot none">總價待查</span>'}
+            ${p.price != null ? `<button type="button" class="unit-btn" title="看近 5 年成交走勢">${p.price} 萬／坪</button>` : ''}</div></div>
         <div class="pc-markstate">${MARK_NAME[markOf(p.id)] || ''}</div>
         <div class="pc-where">${esc(p.district)}・${esc(p.zone)}</div>
-        <div class="pc-sum">${p.price != null ? `<b>${p.price}</b> 萬／坪` : '價格待查'}・${p.cat === '成屋' ? '屋齡 ' + ageText : (isPending(p.completion) ? p.cat : esc(p.completion) + ' 完工')}${p.rooms && !isPending(p.rooms) ? '・' + esc(p.rooms.split('、')[0]) : ''}</div>
+        <div class="pc-sum">${p.cat === '成屋' ? '屋齡 ' + ageText : (isPending(p.completion) ? p.cat : esc(p.completion) + ' 完工')}${p.rooms && !isPending(p.rooms) ? '・' + esc(p.rooms.split('、')[0]) : ''}</div>
       </div>
       <dl class="facts">
         ${fact('建商', esc(p.company) + (b ? `<span class="sub">${esc(b.tier)}</span>` : ''))}
         ${fact('營造', contractorText)}
         ${fact('屋齡', ageText)}
         ${showCompletion ? fact('預計完工', val(p.completion), 'hl') : fact('完工年', val(p.completion))}
+        ${fact('總價', totalDetail, 'wide')}
         ${fact('每坪價位', price, 'wide')}
         ${fact('房型', val(p.rooms), 'wide')}
         ${fact('結構', val(p.structure))}
@@ -297,6 +315,13 @@
       showNearby(p);
     }));
     showNearby(p, true);
+    const ubtn = card.querySelector('.unit-btn');
+    if (ubtn) ubtn.addEventListener('click', () => {
+      if (isMobile()) card.classList.remove('peek');
+      const pb = card.querySelector('.price-btn');
+      if (pb && card.querySelector('.trend').hidden) pb.click();
+      card.querySelector('.trend').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
     const tbtn = card.querySelector('.price-btn');
     if (tbtn) tbtn.addEventListener('click', () => {
       const box = card.querySelector('.trend');
@@ -479,6 +504,7 @@
     h += row('營造', ps.map(p => p.contractor === '待查' ? '<span class="dim">待查</span>' : esc(p.contractor)));
     h += row('屋齡', ps.map(age), best(ps.map(p => p.ageNum != null ? p.ageNum : (p.cat === '成屋' ? null : 0)), true));
     h += row('預計完工', ps.map(p => p.cat === '成屋' ? '<span class="dim">已完工</span>' : val(p.completion)));
+    h += row('總價', ps.map(p => { const t = totalInfo(p); return t ? `<b class="big">${t.main}</b> 萬<small>${t.t ? '近兩年成交 ' + t.t.n + ' 筆' : esc(t.s[2])}</small>` : '<span class="dim">待查</span>'; }));
     h += row('每坪價位', ps.map(p => p.price != null ? `<b class="big">${p.price}</b> 萬` : val(p.priceText)), best(ps.map(p => p.price), true));
     h += row('房型', ps.map(p => val(p.rooms)));
     h += row('結構', ps.map(p => val(p.structure)));
@@ -803,5 +829,5 @@
     map.once('load', fold);
     map.once('idle', fold);
   }
-  window.TCProjects = { select, deselect, openGuide, setFilterIds, markOf, CAT_COLOR, get selected() { return selected; } };
+  window.TCProjects = { select, deselect, openGuide, setFilterIds, markOf, totalInfo, CAT_COLOR, get selected() { return selected; } };
 })();

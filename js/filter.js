@@ -46,6 +46,15 @@
       opts: () => [...new Set(D.projects.map(p => p.brand))].sort((a, b) => a.localeCompare(b, 'zh-Hant'))
         .map(v => { const b = D.builders.find(x => x.brand === v); return [v, v + (b ? `（${tierShort(b.tier)}）` : '')]; }),
       val: p => [p.brand] },
+    { k: 'total', label: '總價', opts: () => [['a', '2,000 萬以下'], ['b', '2,000～2,500 萬'], ['c', '2,500～3,000 萬'], ['d', '3,000～3,500 萬'],
+        ['e', '3,500～4,000 萬'], ['f', '4,000 萬以上'], ['none', '總價待查']],
+      // 建案總價是一段範圍，跟哪個區間有重疊就算符合
+      val: p => {
+        const t = TP.totalInfo(p);
+        if (!t) return ['none'];
+        const edges = [['a', 0, 2000], ['b', 2000, 2500], ['c', 2500, 3000], ['d', 3000, 3500], ['e', 3500, 4000], ['f', 4000, 1e9]];
+        return edges.filter(([, lo, hi]) => t.lo < hi && t.hi >= lo).map(([k]) => k);
+      } },
     { k: 'price', label: '每坪價位', opts: () => [['a', '45 萬以下'], ['b', '45～55 萬'], ['c', '55～65 萬'], ['d', '65～75 萬'], ['e', '75 萬以上'], ['none', '價格待查']],
       val: p => [priceBucket(p.price)] },
     { k: 'age', label: '屋齡', opts: () => [['預售', '預售'], ['興建中', '興建中'], ['0-5', '5 年內'], ['5-10', '5～10 年'], ['10-20', '10～20 年'], ['20+', '20 年以上']],
